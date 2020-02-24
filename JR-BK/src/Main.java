@@ -149,6 +149,7 @@ public class Main
 		acRu -= atkRULoses;
 		def.mu -= defMULoses;
 		def.ru -= defRULoses;
+		//Stage
 		/*
 		 * def.loseMU(atkRangedPower);
 		 * atk.loseRU(atkRangedPower);
