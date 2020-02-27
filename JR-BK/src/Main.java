@@ -1,145 +1,47 @@
+import static Framework.UI.*;
+
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
-import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.LayoutManager;
-import java.awt.event.ActionListener;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.geom.Rectangle2D;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import javax.imageio.ImageIO;
-import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
-import javax.swing.JTextField;
 import javax.swing.SpringLayout;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
+import javax.swing.plaf.synth.SynthLookAndFeel;
 
 public class Main
 {
 	private static final double DMG_TO_KILL = 0.1;// like every unit has 10 hp
-	private final static ArrayList<Hold> jewishHolds = new ArrayList<>(),
-		romanHolds = new ArrayList<>();
-	static final Player judea = new Judea(jewishHolds),
-		rome = new Rome(romanHolds, rand(100));
+	static Player judea, rome;
+	static UI ui;
 	
 	public static void main(String[] args) {
 		initHolds();
 		SwingUtilities.invokeLater(() ->
 		{
-			createUI();
+			ui = new UI();
 		});
-	}
-	
-	static void createUI() {
-		try {
-			for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-				if ("Nimbus".equals(info.getName())) {
-					UIManager.setLookAndFeel(info.getClassName());
-					break;
-				}
-			}
-		} catch (Exception e) {
-		}
-		
-		JFrame frame = new JFrame("המרד הגדול ברומאים - בטא");
-		SPanel mapP = new SPanel("images/Israel.jpg"),
-			navigate = new SPanel("images/static-back4.jpg"),
-			status = new SPanel("images/static-back.jpg"), top = new SPanel(),
-			holdsP = new SPanel("images/tech.jpg"),
-			newsP = new SPanel("images/scroll-back.jpg");
-		CardLayout cl = new CardLayout();
-		
-		frame.addComponentListener(new ComponentAdapter() {
-			@Override
-			public void componentResized(ComponentEvent e) {
-				frame.setShape(
-					new Rectangle2D.Double(0, 0, frame.getWidth(), frame.getHeight()));
-			}
-		});
-		frame.setUndecorated(true);
-		frame.setContentPane(new ImagePanel("images/global-background.jpg"));
-		frame.setLayout(new BorderLayout());
-		
-		JPanel current = new JPanel(cl);
-		current.add(holdsP.get(), "Holds");
-		current.add(mapP.get(), "Map");
-		current.add(newsP.get(), "News");
-		
-		status.addImage("images/coin.png");
-		status.addLabel("Money: " + judea.money);
-		status.addImage("images/ambush.jpg");
-		status.addLabel("Morale: " + judea.getMorale());
-		status.addImage("images/Jerusalem.jpg");
-		status.addLabel("Pop: " + ((Judea) judea).getPop());
-		status.setSize(590, 45);
-		
-		navigate.addButton("Exit", p ->
-		{
-			System.exit(0);
-		});
-		navigate.addButton("Holds", p ->
-		{
-			cl.show(current, "Holds");
-		});
-		navigate.addButton("Map", p ->
-		{
-			cl.show(current, "Map");
-		});
-		navigate.addButton("News", p ->
-		{
-			cl.show(current, "News");
-		});
-		navigate.setSize(590, 45);
-		
-		top.setLayout(new FlowLayout());
-		top.addSPanel(status);
-		top.addSPanel(navigate);
-		top.setSize(590, 100);
-		top.addTo(frame, BorderLayout.PAGE_START);
-		
-		JTextArea news = Framework.addTA(21, 34);
-		SpringLayout layout = new SpringLayout();
-		layout.putConstraint(SpringLayout.WEST, news, 105, SpringLayout.WEST,
-			newsP.get());
-		layout.putConstraint(SpringLayout.NORTH, news, 65, SpringLayout.NORTH,
-			newsP.get());
-		newsP.setLayout(layout);
-		newsP.get().add(news);
-		
-		current.setSize(590, 450);
-		
-		frame.add(current, BorderLayout.CENTER);
-		
-		try {
-			frame.setIconImage(Framework.loadImage("images/Icon3.png"));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		frame.setMinimumSize(new Dimension(600, 600));
-		frame.setLocationRelativeTo(null);
-		frame.setVisible(true);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 	}
 	
 	static void initHolds() {
-		jewishHolds.add(new Hold("Jerusalem"));
-		romanHolds.add(new Hold("Rome"));
+		judea = new Judea();
+		rome = new Rome(rand(100));
+		judea.addHold(new Hold("Jerusalem"));
+		rome.addHold(new Hold("Rome"));
 	}
 	
 	static int rand(int max) {
@@ -147,6 +49,11 @@ public class Main
 	}
 	
 	public static void Battle(Hold def, Hold atk, int mu, int ru) {
+		if (mu + ru <= 0)
+			return;
+		ui.news.append(atk.owner.getClass().getSimpleName() + " Has Attacked from "
+			+ atk.name + " With " + mu + " Soldiers and " + ru
+			+ " Rangers, The Enemey Hold: " + def.name);
 		def.owner.attacked.add(def);
 		// clones for calc purpose
 		int acMu = mu, acRu = ru, defMu = def.mu, defRu = def.ru;
@@ -196,7 +103,7 @@ public class Main
 			// Morale changes due to the conquest
 			def.owner.morale -= 0.2;
 			atk.owner.morale += 0.3;
-			def.owner = atk.owner;// conquest
+			def.changeOwner(atk.owner);// conquest
 			// any attacking unit left will pass to the new hold
 			def.mu = acMu;
 			def.ru = acRu;
@@ -210,76 +117,165 @@ public class Main
 	}
 }
 
-class Framework
+class UI
 {
-	static Image loadImage(String location) throws IOException {
-		return ImageIO.read(Framework.class.getResource(location));
+	JFrame frame = mainFrame("מרד יהודי: בר כוכבא", 600, 600, "images/Icon3.png");// new
+																																								// JFrame("מרד
+																																								// יהודי:
+																																								// בר
+																																								// כוכבא");
+	SPanel mapP = new SPanel("images/Israel.jpg"),
+		navigate = new SPanel("images/static-back4.jpg"),
+		status = new SPanel("images/static-back.jpg"), top = new SPanel(),
+		holdsP = new SPanel("images/tech.jpg"),
+		newsP = new SPanel("images/scroll-back.jpg");
+	// JPanel bottom = new JPanel(); // ads panel
+	CardLayout cl = new CardLayout();
+	JPanel current = new JPanel(cl);
+	JTextArea news = transTA(21, 34);
+	JLabel money = label("Money: " + Main.judea.money),
+		morale = label("Morale: " + Main.judea.getMorale()),
+		pop = label("Pop: " + ((Judea) Main.judea).getPop());
+	
+	public UI()
+	{
+		setHeadless(frame);
+		try {
+			for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+				if ("Nimbus".equals(info.getName())) {
+					UIManager.setLookAndFeel(info.getClassName());
+					break;
+				}
+			}
+		} catch (Exception e) {
+			try {
+				SynthLookAndFeel laf = new SynthLookAndFeel();
+				laf.load(Main.class.getResourceAsStream("GameDesign.xml"), Main.class);
+				UIManager.setLookAndFeel(laf);
+				UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+			} catch (Exception e1) {
+			}
+		}
+		frame.setContentPane(new ImagePanel("images/global-background.jpg"));
+		frame.setLayout(new BorderLayout());
+		
+		current.add(holdsP.get(), "Holds");
+		current.add(mapP.get(), "Map");
+		current.add(newsP.get(), "News");
+		
+		status.add(image("images/coin.png"));
+		status.add(money);
+		status.add(image("images/ambush.jpg"));
+		status.add(morale);
+		status.add(image("images/Jerusalem.jpg"));
+		status.add(pop);
+		
+		setSize(status.get(), 590, 45);
+		
+		navigate.add(button("Exit", p ->
+		{
+			System.exit(0);
+		}));
+		navigate.add(button("Holds", p ->
+		{
+			cl.show(current, "Holds");
+		}));
+		navigate.add(button("Map", p ->
+		{
+			cl.show(current, "Map");
+		}));
+		navigate.add(button("News", p ->
+		{
+			cl.show(current, "News");
+		}));
+		navigate.add(button("End Turn", p ->
+		{
+			Main.judea.endTurn();
+			news.setText("");
+			((Rome) Main.rome).doTurn();
+			updateStatus();
+			cl.show(current, "News");
+		}));
+		setSize(navigate.get(), 590, 100);
+		
+		top.setLayout(new FlowLayout());
+		top.addSPanel(status);
+		top.addSPanel(navigate);
+		setSize(top.get(), 590, 100);
+		top.addTo(frame, BorderLayout.PAGE_START);
+		
+		SpringLayout layout = new SpringLayout();
+		layout.putConstraint(SpringLayout.WEST, news, 105, SpringLayout.WEST,
+			newsP.get());
+		layout.putConstraint(SpringLayout.NORTH, news, 65, SpringLayout.NORTH,
+			newsP.get());
+		newsP.setLayout(layout);
+		newsP.get().add(news);
+		
+		current.setSize(590, 450);
+		
+		frame.add(current, BorderLayout.CENTER);
+		
+		frame.setVisible(true);
 	}
 	
-	static void setSize(Component comp, int width, int height) {
-		Dimension size = new Dimension(width, height);
-		comp.setSize(size);
-		comp.setPreferredSize(size);
-		comp.setMinimumSize(size);
-		comp.setMaximumSize(size);
-	}
-	
-	static JTextArea addTA(int rows, int cols) {
-		JTextArea tf = new JTextArea(rows, cols);
-		tf.setBackground(new Color(0,0,0,0));
-		tf.setEditable(false);
-		tf.setBorder(BorderFactory.createEmptyBorder());
-		return tf;
+	void updateStatus() {
+		money.setText("Money: " + Main.judea.money);
+		morale.setText("Morale: " + Main.judea.getMorale());
+		pop.setText("Pop: " + ((Judea) Main.judea).getPop());
 	}
 }
 
-@SuppressWarnings("serial")
-class ImageButton extends JButton // really needs improve on drawing text
-{
-	private Image background;
-	
-	public ImageButton()
-	{
-		super();
-		try {
-			background = Framework.loadImage("images/static-background.jpg"); // default
-																																				// is
-																																				// static-background
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	public ImageButton(String imageLoc)
-	{
-		super();
-		try {
-			background = Framework.loadImage(imageLoc);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	public ImageButton(String txt, String imageLoc)
-	{
-		super(txt);
-		try {
-			background = Framework.loadImage(imageLoc);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	@Override
-	protected void paintComponent(Graphics g) {
-		super.paintComponent(g);
-		g.drawImage(background, 0, 0, this.getWidth(), this.getHeight(), null);
-		// g.setColor(c);
-		g.drawString(getText(),
-			(getWidth() - g.getFontMetrics().stringWidth(getText())) / 2,
-			(getHeight() + g.getFontMetrics().getHeight()) / 2);
-	}
-}
+// not working properly. ceased for now.
+/*
+ * @SuppressWarnings("serial")
+ * class ImageButton extends JButton // really needs improve on drawing text
+ * {
+ * private Image background;
+ * 
+ * public ImageButton()
+ * {
+ * super();
+ * try {
+ * background = Framework.loadImage("images/static-background.jpg"); // default
+ * // is
+ * // static-background
+ * } catch (IOException e) {
+ * e.printStackTrace();
+ * }
+ * }
+ * 
+ * public ImageButton(String imageLoc)
+ * {
+ * super();
+ * try {
+ * background = Framework.loadImage(imageLoc);
+ * } catch (IOException e) {
+ * e.printStackTrace();
+ * }
+ * }
+ * 
+ * public ImageButton(String txt, String imageLoc)
+ * {
+ * super(txt);
+ * try {
+ * background = Framework.loadImage(imageLoc);
+ * } catch (IOException e) {
+ * e.printStackTrace();
+ * }
+ * }
+ * 
+ * @Override
+ * protected void paintComponent(Graphics g) {
+ * super.paintComponent(g);
+ * g.drawImage(background, 0, 0, this.getWidth(), this.getHeight(), null);
+ * // g.setColor(c);
+ * g.drawString(getText(),
+ * (getWidth() - g.getFontMetrics().stringWidth(getText())) / 2,
+ * (getHeight() + g.getFontMetrics().getHeight()) / 2);
+ * }
+ * }
+ */
 
 @SuppressWarnings("serial")
 class ImagePanel extends JPanel
@@ -289,9 +285,9 @@ class ImagePanel extends JPanel
 	public ImagePanel()
 	{
 		try {
-			background = Framework.loadImage("images/static-back.jpg"); // default
-																																	// is
-																																	// static-background
+			background = loadImage("images/static-back.jpg"); // default
+																												// is
+																												// static-background
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -300,7 +296,7 @@ class ImagePanel extends JPanel
 	public ImagePanel(String imageLoc)
 	{
 		try {
-			background = Framework.loadImage(imageLoc);
+			background = loadImage(imageLoc);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -315,75 +311,39 @@ class ImagePanel extends JPanel
 
 class SPanel
 {
-	/* private */public ImagePanel internal;
-	// private JScrollPane scroller;
+	private ImagePanel internal;
+	private JScrollPane scroller;
 	
 	public SPanel()
 	{
 		internal = new ImagePanel();
-		// scroller = new JScrollPane(internal);
+		scroller = new JScrollPane(internal);
+	}
+	
+	public SPanel(String imageLoc)
+	{
+		internal = new ImagePanel(imageLoc);
+		scroller = new JScrollPane(internal);
 	}
 	
 	public JPanel get() {
 		return internal;
 	}
 	
-	public SPanel(String imageLoc)
-	{
-		internal = new ImagePanel(imageLoc);
-		// scroller = new JScrollPane(internal);
-	}
-	
-	void addButton(String txt, ActionListener listener) {
-		JButton btn = new JButton(txt);
-		btn.addActionListener(listener);
-		internal.add(btn);
-	}
-	
-	void addImageButton(String txt, ActionListener listener, String location) {
-		ImageButton btn = new ImageButton(txt, location);
-		btn.addActionListener(listener);
-		internal.add(btn);
-	}
-	
-	void addLabel(String txt) {
-		internal.add(new JLabel(txt));
-	}
-	
-	void addImage(String location) {
-		try {
-			JLabel img = new JLabel();
-			Framework.setSize(img, 20, 20);
-			img.setIcon(new ImageIcon(Framework.loadImage(location)));
-			// img.setm
-			internal.add(img);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	void addTF(int width, String txt) {
-		internal.add(new JTextField(txt, width));
-	}
-	
 	void addSPanel(SPanel pane) {
 		internal.add(pane.get());
+	}
+	
+	void add(Component comp) {
+		internal.add(comp);
 	}
 	
 	void setLayout(LayoutManager manager) {
 		internal.setLayout(manager);
 	}
 	
-	void setSize(int width, int height) {
-		Dimension size = new Dimension(width, height);
-		internal.setSize(size);
-		internal.setPreferredSize(size);
-		internal.setMinimumSize(size);
-		internal.setMaximumSize(size);
-	}
-	
 	void addTo(Container parent, String place) {
-		parent.add(internal, place);
+		parent.add(scroller, place);
 	}
 }
 
@@ -401,12 +361,11 @@ abstract class Player
 	boolean honor = false;
 	ArrayList<Hold> attacked = new ArrayList<Hold>();
 	
-	public Player(int money, double morale, ArrayList<Hold> holds,
-		double MU_Power, double RU_Power)
+	public Player(int money, double morale, double MU_Power, double RU_Power)
 	{
 		this.money = money;
 		this.morale = morale;
-		this.holds = holds;
+		this.holds = new ArrayList<>();
 		this.MU_POWER = MU_Power;
 		this.RU_POWER = RU_Power;
 	}
@@ -415,8 +374,22 @@ abstract class Player
 		return honor ? morale * (1 + HONOR_MORALE) : morale;
 	}
 	
-	// abstract void doTurn();
+	public void addHold(Hold hold) {
+		hold.owner = this;
+		holds.add(hold);
+	}
 	
+	// currently unused methods:
+	/*
+	 * public void removeHold(Hold hold) {
+	 * holds.remove(hold);
+	 * }
+	 * 
+	 * public void changeOwner(Hold hold, Player newOwner) {
+	 * holds.remove(hold);
+	 * newOwner.addHold(hold);
+	 * }
+	 */
 	void endTurn() {
 		Iterator<Hold> it = holds.iterator();
 		int income = 0;
@@ -437,9 +410,9 @@ final class Rome extends Player
 {
 	final int ATTACK_RATE;
 	
-	public Rome(ArrayList<Hold> holds, int ATTACK_RATE)
+	public Rome(int ATTACK_RATE)
 	{
-		super(100000, 0.5, holds, 8, 7);
+		super(100000, 0.5, 8, 7);
 		this.ATTACK_RATE = ATTACK_RATE;
 	}
 	
@@ -511,9 +484,9 @@ final class Rome extends Player
 
 final class Judea extends Player
 {
-	public Judea(ArrayList<Hold> holds)
+	public Judea()
 	{
-		super(4000, 0.7, holds, 6, 9);
+		super(4000, 0.7, 6, 9);
 	}
 	
 	public int getPop() {
@@ -553,8 +526,13 @@ class Hold
 		happiness = 0.5;
 	}
 	
+	public void changeOwner(Player newOwner) {
+		owner.holds.remove(this);
+		newOwner.addHold(this);
+	}
+	
 	void grow() {
-		pop = (int) (pop * ((0.5 + happiness) * GROW_RATE));
+		pop = (int) (pop * ((0.5 + happiness) * (1 + GROW_RATE)));
 	}
 	
 	int calcIncome() {
