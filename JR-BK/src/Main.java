@@ -1,5 +1,6 @@
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
@@ -16,12 +17,16 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 import javax.imageio.ImageIO;
+import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.SpringLayout;
+import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 
@@ -35,7 +40,10 @@ public class Main
 	
 	public static void main(String[] args) {
 		initHolds();
-		createUI();
+		SwingUtilities.invokeLater(() ->
+		{
+			createUI();
+		});
 	}
 	
 	static void createUI() {
@@ -56,10 +64,6 @@ public class Main
 			holdsP = new SPanel("images/tech.jpg"),
 			newsP = new SPanel("images/scroll-back.jpg");
 		CardLayout cl = new CardLayout();
-		JPanel current = new JPanel(cl);
-		current.add(holdsP.get(), "Holds");
-		current.add(mapP.get(), "Map");
-		current.add(newsP.get(), "News");
 		
 		frame.addComponentListener(new ComponentAdapter() {
 			@Override
@@ -71,12 +75,20 @@ public class Main
 		frame.setUndecorated(true);
 		frame.setContentPane(new ImagePanel("images/global-background.jpg"));
 		frame.setLayout(new BorderLayout());
+		
+		JPanel current = new JPanel(cl);
+		current.add(holdsP.get(), "Holds");
+		current.add(mapP.get(), "Map");
+		current.add(newsP.get(), "News");
+		
 		status.addImage("images/coin.png");
 		status.addLabel("Money: " + judea.money);
 		status.addImage("images/ambush.jpg");
 		status.addLabel("Morale: " + judea.getMorale());
 		status.addImage("images/Jerusalem.jpg");
 		status.addLabel("Pop: " + ((Judea) judea).getPop());
+		status.setSize(590, 45);
+		
 		navigate.addButton("Exit", p ->
 		{
 			System.exit(0);
@@ -94,15 +106,26 @@ public class Main
 			cl.show(current, "News");
 		});
 		navigate.setSize(590, 45);
-		status.setSize(590, 45);
+		
 		top.setLayout(new FlowLayout());
 		top.addSPanel(status);
 		top.addSPanel(navigate);
 		top.setSize(590, 100);
 		top.addTo(frame, BorderLayout.PAGE_START);
+		
+		JTextArea news = Framework.addTA(21, 34);
+		SpringLayout layout = new SpringLayout();
+		layout.putConstraint(SpringLayout.WEST, news, 105, SpringLayout.WEST,
+			newsP.get());
+		layout.putConstraint(SpringLayout.NORTH, news, 65, SpringLayout.NORTH,
+			newsP.get());
+		newsP.setLayout(layout);
+		newsP.get().add(news);
+		
 		current.setSize(590, 450);
-		// current.addTo(frame, BorderLayout.CENTER);
+		
 		frame.add(current, BorderLayout.CENTER);
+		
 		try {
 			frame.setIconImage(Framework.loadImage("images/Icon3.png"));
 		} catch (IOException e) {
@@ -119,42 +142,71 @@ public class Main
 		romanHolds.add(new Hold("Rome"));
 	}
 	
-	/*
-	 * private static void initPlayers() {
-	 * 
-	 * }
-	 */
-	
 	static int rand(int max) {
 		return (int) (Math.random() * max);
 	}
 	
 	public static void Battle(Hold def, Hold atk, int mu, int ru) {
 		def.owner.attacked.add(def);
-		int acMu = mu, acRu = ru;
+		// clones for calc purpose
+		int acMu = mu, acRu = ru, defMu = def.mu, defRu = def.ru;
 		// Stage 1 - Ranged Units shoot on Melee Units,
 		// Any Left Power will be put on enemy Range units
-		//power calculations
-		double defRangedPower = def.ru * def.owner.getMorale() * def.owner.RU_POWER,
-			atkRangedPower = ru * atk.owner.getMorale() * atk.owner.RU_POWER,
-			defExPower = Math.max((defRangedPower * DMG_TO_KILL) - mu, 0),
-			atkExPower = Math.max((atkRangedPower * DMG_TO_KILL) - def.mu, 0);
-		//loses calculations
-		int atkMULoses = (int) Math.min(defRangedPower * DMG_TO_KILL, mu),
+		// power calculations
+		double defPower = def.ru * def.owner.getMorale() * def.owner.RU_POWER,
+			atkPower = ru * atk.owner.getMorale() * atk.owner.RU_POWER,
+			defExPower = Math.max((defPower * DMG_TO_KILL) - mu, 0),
+			atkExPower = Math.max((atkPower * DMG_TO_KILL) - def.mu, 0);
+		// loses calculations
+		int atkMULoses = (int) Math.min(defPower * DMG_TO_KILL, mu),
 			atkRULoses = (int) Math.min(defExPower * DMG_TO_KILL, ru),
-			defMULoses = (int) Math.min(atkRangedPower * DMG_TO_KILL, def.mu),
+			defMULoses = (int) Math.min(atkPower * DMG_TO_KILL, def.mu),
 			defRULoses = (int) Math.min(atkExPower * DMG_TO_KILL, def.ru);
-		//apply dmg
+		// apply dmg
 		acMu -= atkMULoses;
 		acRu -= atkRULoses;
 		def.mu -= defMULoses;
 		def.ru -= defRULoses;
-		//Stage
-		/*
-		 * def.loseMU(atkRangedPower);
-		 * atk.loseRU(atkRangedPower);
-		 * //
-		 */
+		// Stage 2 - Melee Units fight,
+		// Any left power will put on enemy range units.
+		defPower = def.mu * def.owner.getMorale() * def.owner.MU_POWER;
+		atkPower = acMu * atk.owner.getMorale() * atk.owner.MU_POWER;
+		defExPower = Math.max((defPower * DMG_TO_KILL) - acMu, 0);
+		atkExPower = Math.max((atkPower * DMG_TO_KILL) - def.mu, 0);
+		// loses calculations
+		atkMULoses = (int) Math.min(defPower * DMG_TO_KILL, acMu);
+		atkRULoses = (int) Math.min(defExPower * DMG_TO_KILL, acRu);
+		defMULoses = (int) Math.min(atkPower * DMG_TO_KILL, def.mu);
+		defRULoses = (int) Math.min(atkExPower * DMG_TO_KILL, def.ru);
+		// apply dmg
+		acMu -= atkMULoses;
+		acRu -= atkRULoses;
+		def.mu -= defMULoses;
+		def.ru -= defRULoses;
+		// apply changes in game
+		// Morale changes due to the battle
+		if ((mu - acMu) + (ru - acRu) < (def.mu - defMu) + (def.ru - defRu)) {
+			def.owner.morale -= 0.3;
+			atk.owner.morale += 0.3;
+		} else {
+			def.owner.morale += 0.3;
+			atk.owner.morale -= 0.3;
+		}
+		if (def.mu + def.ru <= 0) {
+			// Morale changes due to the conquest
+			def.owner.morale -= 0.2;
+			atk.owner.morale += 0.3;
+			def.owner = atk.owner;// conquest
+			// any attacking unit left will pass to the new hold
+			def.mu = acMu;
+			def.ru = acRu;
+			// the soldiers that attacked are removed from the attacking hold
+			atk.mu -= mu;
+			atk.ru -= ru;
+		} else {
+			atk.mu = atk.mu - mu + acMu;
+			atk.ru = atk.ru - ru + acRu;
+		}
 	}
 }
 
@@ -170,6 +222,14 @@ class Framework
 		comp.setPreferredSize(size);
 		comp.setMinimumSize(size);
 		comp.setMaximumSize(size);
+	}
+	
+	static JTextArea addTA(int rows, int cols) {
+		JTextArea tf = new JTextArea(rows, cols);
+		tf.setBackground(new Color(0,0,0,0));
+		tf.setEditable(false);
+		tf.setBorder(BorderFactory.createEmptyBorder());
+		return tf;
 	}
 }
 
@@ -255,7 +315,7 @@ class ImagePanel extends JPanel
 
 class SPanel
 {
-	private ImagePanel internal;
+	/* private */public ImagePanel internal;
 	// private JScrollPane scroller;
 	
 	public SPanel()
@@ -464,14 +524,6 @@ final class Judea extends Player
 		}
 		return pop;
 	}
-	
-	// @Override
-	/*
-	 * void doTurn() {
-	 * // TODO Auto-generated method stub
-	 * 
-	 * }//
-	 */
 }
 
 class Hold
