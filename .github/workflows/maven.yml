@@ -15,5 +15,5 @@ jobs:
         java-version: 1.8
     - name: Build with Maven
       run: |
-        mvn -B package --file pom.xml;
-        mvn clean install -f pom.xml
+        mvn clean install -f pom.xml;
+        mvn -B package -e --file pom.xml;
