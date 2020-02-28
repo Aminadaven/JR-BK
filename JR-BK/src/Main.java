@@ -1,3 +1,7 @@
+import static Framework.UI.button;
+import static Framework.UI.image;
+import static Framework.UI.label;
+import static Framework.UI.loadImage;
 import static Framework.UI.*;
 
 import java.awt.BorderLayout;
@@ -39,7 +43,8 @@ public class Main
 	
 	static void initHolds() {
 		judea = new Judea();
-		rome = new Rome(rand(100));
+		// rome = new Rome(rand(100)); //for test purposes
+		rome = new Rome(100);
 		judea.addHold(new Hold("Jerusalem"));
 		rome.addHold(new Hold("Rome"));
 	}
@@ -51,9 +56,9 @@ public class Main
 	public static void Battle(Hold def, Hold atk, int mu, int ru) {
 		if (mu + ru <= 0)
 			return;
-		ui.news.append(atk.owner.getClass().getSimpleName() + " Has Attacked from "
-			+ atk.name + " With " + mu + " Soldiers and " + ru
-			+ " Rangers, The Enemey Hold: " + def.name);
+		ui.news.append(
+			atk.owner.toString() + " Has Attacked from " + atk.name + " With " + mu
+				+ " Soldiers and " + ru + " Rangers, The Enemey Hold: " + def.name);
 		def.owner.attacked.add(def);
 		// clones for calc purpose
 		int acMu = mu, acRu = ru, defMu = def.mu, defRu = def.ru;
@@ -93,15 +98,15 @@ public class Main
 		// apply changes in game
 		// Morale changes due to the battle
 		if ((mu - acMu) + (ru - acRu) < (def.mu - defMu) + (def.ru - defRu)) {
-			def.owner.morale -= 0.3;
-			atk.owner.morale += 0.3;
+			def.owner.morale -= 0.1;
+			atk.owner.morale += 0.2;
 		} else {
-			def.owner.morale += 0.3;
-			atk.owner.morale -= 0.3;
+			def.owner.morale += 0.1;
+			atk.owner.morale -= 0.2;
 		}
 		if (def.mu + def.ru <= 0) {
 			// Morale changes due to the conquest
-			def.owner.morale -= 0.2;
+			def.owner.morale -= 0.4;
 			atk.owner.morale += 0.3;
 			def.changeOwner(atk.owner);// conquest
 			// any attacking unit left will pass to the new hold
@@ -192,8 +197,21 @@ class UI
 		{
 			Main.judea.endTurn();
 			news.setText("");
-			((Rome) Main.rome).doTurn();
+			// ((Rome) Main.rome).doTurn();
+			((Rome) Main.rome).rush();
 			updateStatus();
+			cl.show(current, "News");
+		}));
+		// for testing purposes
+		navigate.add(button("End Turn X 10", p ->
+		{
+			news.setText("");
+			for (int i = 0; i < 10; i++) {
+				Main.judea.endTurn();
+				// ((Rome) Main.rome).doTurn();
+				((Rome) Main.rome).rush();
+				updateStatus();
+			}
 			cl.show(current, "News");
 		}));
 		setSize(navigate.get(), 590, 100);
@@ -304,8 +322,11 @@ class ImagePanel extends JPanel
 	
 	@Override
 	protected void paintComponent(Graphics g) {
+		g.setColor(getBackground());
+		g.fillRect(0, 0, getWidth(), getHeight());
 		super.paintComponent(g);
-		g.drawImage(background, 0, 0, this.getWidth(), this.getHeight(), null);
+		g.drawImage(background.getScaledInstance(getWidth(), getHeight(), 0), 0, 0,
+			getWidth(), getHeight(), null);
 	}
 }
 
@@ -379,17 +400,6 @@ abstract class Player
 		holds.add(hold);
 	}
 	
-	// currently unused methods:
-	/*
-	 * public void removeHold(Hold hold) {
-	 * holds.remove(hold);
-	 * }
-	 * 
-	 * public void changeOwner(Hold hold, Player newOwner) {
-	 * holds.remove(hold);
-	 * newOwner.addHold(hold);
-	 * }
-	 */
 	void endTurn() {
 		Iterator<Hold> it = holds.iterator();
 		int income = 0;
@@ -404,11 +414,17 @@ abstract class Player
 		money += income;
 		attacked.clear();
 	}
+	
+	@Override
+	public String toString() {
+		return this.getClass().getSimpleName();
+	}
 }
 
 final class Rome extends Player
 {
 	final int ATTACK_RATE;
+	ArrayList<Hold> toAdd = new ArrayList<>();
 	
 	public Rome(int ATTACK_RATE)
 	{
@@ -454,9 +470,9 @@ final class Rome extends Player
 					rec = (int) (0.32 * holdBudget);
 				}
 				if (buildAB > 0) {
-					if (hold.barracks && buildAB >= Hold.BAR_COST)
+					if (!hold.barracks && buildAB >= Hold.BAR_COST)
 						hold.buildBar();
-					if (hold.range && buildAB >= Hold.RANGE_COST)
+					if (!hold.range && buildAB >= Hold.RANGE_COST)
 						hold.buildRange();
 				}
 				if (Math.random() > 0.5) {
@@ -479,6 +495,52 @@ final class Rome extends Player
 						Main.rand(hold.mu), Main.rand(hold.ru));
 			}
 		}
+		endTurn();
+	}
+	
+	// for testing only purposes
+	void rush() {
+		// budget split even among all holds, then invest in building & recruiting
+		int rec, buildAB, holdBudget = money / holds.size();
+		Main.ui.news.append(toString() + " holdBudget=" + holdBudget + "\n");
+		Iterator<Hold> it = holds.iterator();
+		Hold hold;
+		while (it.hasNext()) {
+			rec = 0;
+			buildAB = 0;
+			hold = it.next();
+			// budget splitting
+			if (hold.barracks && hold.range) {
+				rec = holdBudget;
+			} else if (hold.barracks || hold.range) {
+				buildAB = (int) (0.4 * holdBudget);
+				rec = (int) (0.6 * holdBudget);
+			} else {
+				buildAB = holdBudget;
+			}
+			Main.ui.news
+				.append(toString() + " buildAB=" + buildAB + ", rec=" + rec + "\n");
+			if (buildAB > 0) {
+				if (!hold.barracks && buildAB >= Hold.BAR_COST) {
+					hold.buildBar();
+				}
+				if (!hold.range && buildAB >= Hold.RANGE_COST)
+					hold.buildRange();
+			}
+			if (Math.random() > 0.5)
+				hold.recMU(Math.min(hold.pop, rec / Hold.MU_COST));
+			else
+				hold.recRU(Math.min(hold.pop, rec / Hold.RU_COST));
+			if (Main.rand(100) <= ATTACK_RATE) {
+				Main.ui.news.append(toString() + " inside attack mechanic \n");
+				hold.attack(Main.judea.holds.get(Main.rand(Main.judea.holds.size())),
+					Main.rand(hold.mu), Main.rand(hold.ru));
+			}
+		}
+		it = toAdd.iterator();
+		while (it.hasNext())
+			addHold(it.next());
+		endTurn();
 	}
 }
 
@@ -528,7 +590,10 @@ class Hold
 	
 	public void changeOwner(Player newOwner) {
 		owner.holds.remove(this);
-		newOwner.addHold(this);
+		if (newOwner instanceof Rome)
+			((Rome) newOwner).toAdd.add(this);
+		else
+			newOwner.addHold(this);
 	}
 	
 	void grow() {
@@ -550,6 +615,8 @@ class Hold
 		pop -= sum;
 		owner.money -= sum * MU_COST;
 		mu += sum;
+		Main.ui.news
+			.append(owner.toString() + " Has Recruited " + sum + " Melee Units.\n");
 	}
 	
 	void recRU(int sum) {
@@ -562,6 +629,8 @@ class Hold
 		pop -= sum;
 		owner.money -= sum * RU_COST;
 		ru += sum;
+		Main.ui.news
+			.append(owner.toString() + " Has Recruited " + sum + " Ranged Units.\n");
 	}
 	
 	int ecoCost() {
@@ -577,6 +646,7 @@ class Hold
 			return;
 		owner.money -= BAR_COST;
 		barracks = true;
+		Main.ui.news.append(owner.toString() + " Has Built Barracks!\n");
 	}
 	
 	void buildRange() {
@@ -584,6 +654,7 @@ class Hold
 			return;
 		owner.money -= RANGE_COST;
 		range = true;
+		Main.ui.news.append(owner.toString() + " Has Built Range!\n");
 	}
 	
 	void buildEconomy() {
@@ -591,6 +662,8 @@ class Hold
 			return;
 		owner.money -= ecoCost();
 		economy++;
+		Main.ui.news.append(owner.toString() + " Has Built up his Economy to level:"
+			+ economy + "\n");
 	}
 	
 	void raiseHappiness() {
@@ -610,8 +683,15 @@ class Hold
 	}
 	
 	void attack(Hold hold, int mu, int ru) {
-		if (hold.owner.equals(owner) || mu < this.mu || ru < this.ru)
+		if (hold.owner.equals(owner) || mu > this.mu || ru > this.ru) {
+			Main.ui.news.append(owner.toString() + " Can't Attack!\n");
 			return;
+		}
+		if (mu + ru <= 0) {
+			Main.ui.news.append(owner.toString() + " 0 - Soldiers!\n");
+			return;
+		}
+		Main.ui.news.append(owner.toString() + " is Attacking!\n");
 		Main.Battle(hold, this, mu, ru);
 	}
 }

@@ -3,11 +3,13 @@ package Framework;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 
 import javax.imageio.ImageIO;
@@ -24,7 +26,12 @@ public class UI
 	public static final int DEF_WIDTH = 600, DEF_HEIGHT = 600, IMG_SIZE = 20;
 	
 	public static Image loadImage(String location) throws IOException {
-		return ImageIO.read(UI.class.getResource("../"+location));
+		return ImageIO.read(UI.class.getResource("../" + location));
+	}
+	
+	public static BufferedImage loadBuffImage(String location)
+		throws IOException {
+		return ImageIO.read(UI.class.getResource("../" + location));
 	}
 	
 	public static void setSize(Component comp, int width, int height) {
@@ -52,7 +59,7 @@ public class UI
 	public static JFrame mainFrame(String title, String icon) {
 		JFrame frame = mainFrame(title);
 		try {
-			frame.setIconImage(UI.loadImage(icon));
+			frame.setIconImage(loadImage(icon));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -69,7 +76,7 @@ public class UI
 		String icon) {
 		JFrame frame = mainFrame(title, width, height);
 		try {
-			frame.setIconImage(UI.loadImage(icon));
+			frame.setIconImage(loadImage(icon));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -114,10 +121,18 @@ public class UI
 	}
 	
 	public static JTextArea transTA(int rows, int cols) {
-		JTextArea tf = new JTextArea(rows, cols);
-		tf.setBackground(new Color(0, 0, 0, 0));
-		tf.setEditable(false);
-		tf.setBorder(BorderFactory.createEmptyBorder());
-		return tf;
+		
+		JTextArea ta = new JTextArea(rows, cols) {
+			protected void paintComponent(Graphics g) {
+				g.setColor(getBackground());
+				g.fillRect(0, 0, getWidth(), getHeight());
+				super.paintComponent(g);
+			}
+		};
+		ta.setOpaque(false);
+		ta.setBackground(new Color(255, 255, 255, 0));
+		ta.setEditable(false);
+		ta.setBorder(BorderFactory.createEmptyBorder());
+		return ta;
 	}
 }
