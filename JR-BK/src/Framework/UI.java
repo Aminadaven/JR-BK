@@ -8,6 +8,9 @@ import java.awt.Image;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -100,6 +103,12 @@ public class UI
 		return btn;
 	}
 	
+	public static ImageButton ibutton(String loc, String loc2, ActionListener listener) {
+		ImageButton btn = new ImageButton(loc,loc2);
+		btn.addActionListener(listener);
+		return btn;
+	}
+	
 	public static JLabel label(String txt) {
 		return (new JLabel(txt));
 	}
@@ -121,7 +130,6 @@ public class UI
 	}
 	
 	public static JTextArea transTA(int rows, int cols) {
-		
 		JTextArea ta = new JTextArea(rows, cols) {
 			protected void paintComponent(Graphics g) {
 				g.setColor(getBackground());
@@ -134,5 +142,67 @@ public class UI
 		ta.setEditable(false);
 		ta.setBorder(BorderFactory.createEmptyBorder());
 		return ta;
+	}
+}
+
+@SuppressWarnings("serial")
+class ImageButton extends JButton // really needs improve on drawing text
+{
+	public boolean onClick = false;
+	private Image background, backgroundg;
+	
+	public ImageButton(String imageLoc, String image2loc)
+	{
+		super();
+		this.addMouseListener(new MouseListener() {
+			
+			@Override
+			public void mouseClicked(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public void mouseEntered(MouseEvent arg0) {
+				onClick = true;
+			}
+			
+			@Override
+			public void mouseExited(MouseEvent arg0) {
+				onClick = false;
+			}
+			
+			@Override
+			public void mousePressed(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public void mouseReleased(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+		});
+		addActionListener(p ->
+		{
+			backgroundg = background;
+		});
+		setOpaque(false);
+		setBackground(new Color(0,0,0,0));
+		try {
+			background = UI.loadImage(imageLoc);
+			backgroundg = UI.loadImage(image2loc);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	@Override
+	protected void paintComponent(Graphics g) {
+		Image img = onClick ? background : backgroundg;
+		g.drawImage(img.getScaledInstance(getWidth(), getHeight(), 0), 0, 0,
+			getWidth(), getHeight(), null);
+		super.paintComponent(g);
 	}
 }
