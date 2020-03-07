@@ -109,7 +109,7 @@ class UI
 	JLabel money = label("Money: " + Main.judea.money),
 		morale = label("Morale: " + Main.judea.getMorale()),
 		pop = label("Pop: " + ((Judea) Main.judea).getPop());
-	pHold selected;
+	Hold selected;
 	
 	public UI()
 	{
@@ -201,27 +201,30 @@ class UI
 		
 		setSize(current, 590, 450);
 		
-		JComboBox<pHold> holds = new JComboBox<>();
-		DefaultComboBoxModel<pHold> model = new DefaultComboBoxModel<>();
+		JComboBox<Hold> holds = new JComboBox<>();
+		DefaultComboBoxModel<Hold> model = new DefaultComboBoxModel<>();
 		holds.setModel(model);
 		holds.addItemListener(p->{
-			selected =(pHold) p.getItem();
+			selected =(Hold) p.getItem();
 			updateHolds();
 		});
-
+		
+		for(Hold h:Main.judea.holds) model.addElement((Hold) h);
+		selected =(Hold) model.getElementAt(0);
+		
 		JComponent bBar = building("images/Barracks.png", "images/þþBarracksg.png", p ->
 		{
 			selected.buildBar();
 		});
-		JComponent bRange = building("images/range.jpg", "images/þþSling-man.jpg", p ->
+		JComponent bRange = building("images/range.jpg", "images/Sling-man.jpg", p ->
 		{
 			selected.buildRange();
 		});
-		JComponent bEco = building("images/farm2.jpg", "images/þþWarehouse.png", p ->
+		JComponent bEco = building("images/farm2.jpg", "images/Warehouse.png", p ->
 		{
 			selected.buildEconomy();
 		});
-		JComponent bHap = building("images/smiley.png", "images/þþWin.jpg", p ->
+		JComponent bHap = building("images/smiley.png", "images/Win.jpg", p ->
 		{
 			selected.raiseHappiness();
 		});
@@ -229,6 +232,7 @@ class UI
 		setSize(bRange, 70, 70);
 		setSize(bEco, 70, 70);
 		setSize(bHap, 70, 70);
+		holdsP.add(holds);
 		holdsP.add(bBar);
 		holdsP.add(bRange);
 		holdsP.add(bEco);

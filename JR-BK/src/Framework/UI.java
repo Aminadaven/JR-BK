@@ -12,6 +12,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -29,7 +30,9 @@ public class UI
 	public static final int DEF_WIDTH = 600, DEF_HEIGHT = 600, IMG_SIZE = 20;
 	
 	public static Image loadImage(String location) throws IOException {
-		return ImageIO.read(UI.class.getResource("../" + location));
+		//return ImageIO.read(ClassLoader.getSystemResource("../" + location));
+		return ImageIO.read(UI.class.getResourceAsStream("../" + location));
+		//return ImageIO.read(new FileInputStream("../" + location));
 	}
 	
 	public static BufferedImage loadBuffImage(String location)

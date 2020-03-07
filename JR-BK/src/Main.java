@@ -60,6 +60,7 @@ public class Main
 		rome = new Rome(100);
 		judea.addHold(new pHold("Jerusalem"));
 		rome.addHold(new Hold("Rome"));
+		
 	}
 	
 	static int rand(int max) {
