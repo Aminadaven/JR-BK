@@ -10,9 +10,13 @@ import java.awt.Image;
 import java.awt.LayoutManager;
 import java.io.IOException;
 
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -46,7 +50,6 @@ class ImagePanel extends JPanel
 	
 	@Override
 	protected void paintComponent(Graphics g) {
-		
 		g.setColor(getBackground());
 		g.fillRect(0, 0, getWidth(), getHeight());
 		super.paintComponent(g);
@@ -108,6 +111,7 @@ class UI
 	JLabel money = label("Money: " + Main.judea.money),
 		morale = label("Morale: " + Main.judea.getMorale()),
 		pop = label("Pop: " + ((Judea) Main.judea).getPop());
+	pHold selected;
 	
 	public UI()
 	{
@@ -197,12 +201,19 @@ class UI
 		newsP.setLayout(layout);
 		newsP.get().add(news);
 		
-		// current.setSize(590, 450);
 		setSize(current, 590, 450);
 		
-		JButton bBar = ibutton("images/Barracks.png", "images/þþBarracksg.png", p ->
+		JComboBox<pHold> holds = new JComboBox<>();
+		DefaultComboBoxModel<pHold> model = new DefaultComboBoxModel<>();
+		holds.setModel(model);
+		holds.addItemListener(p->{
+			selected =(pHold) p.getItem();
+			updateHolds();
+		});
+		
+		JComponent bBar = building("images/Barracks.png", "images/þþBarracksg.png", p ->
 		{
-			// is=true;
+			selected.buildBar();
 		});
 		setSize(bBar, 70, 70);
 		holdsP.add(bBar);
@@ -212,6 +223,10 @@ class UI
 		frame.setVisible(true);
 	}
 	
+	private void updateHolds() {
+		
+	}
+
 	void updateStatus() {
 		money.setText("Money: " + Main.judea.money);
 		morale.setText("Morale: " + Main.judea.getMorale());
