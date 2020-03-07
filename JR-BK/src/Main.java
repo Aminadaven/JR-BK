@@ -1,5 +1,3 @@
-import static Framework.UI.*;
-
 import javax.swing.SwingUtilities;
 
 public class Main

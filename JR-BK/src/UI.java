@@ -11,12 +11,10 @@ import java.awt.LayoutManager;
 import java.io.IOException;
 
 import javax.swing.DefaultComboBoxModel;
-import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -210,13 +208,31 @@ class UI
 			selected =(pHold) p.getItem();
 			updateHolds();
 		});
-		
+
 		JComponent bBar = building("images/Barracks.png", "images/þþBarracksg.png", p ->
 		{
 			selected.buildBar();
 		});
+		JComponent bRange = building("images/range.jpg", "images/þþSling-man.jpg", p ->
+		{
+			selected.buildRange();
+		});
+		JComponent bEco = building("images/farm2.jpg", "images/þþWarehouse.png", p ->
+		{
+			selected.buildEconomy();
+		});
+		JComponent bHap = building("images/smiley.png", "images/þþWin.jpg", p ->
+		{
+			selected.raiseHappiness();
+		});
 		setSize(bBar, 70, 70);
+		setSize(bRange, 70, 70);
+		setSize(bEco, 70, 70);
+		setSize(bHap, 70, 70);
 		holdsP.add(bBar);
+		holdsP.add(bRange);
+		holdsP.add(bEco);
+		holdsP.add(bHap);
 		
 		frame.add(current, BorderLayout.CENTER);
 		
