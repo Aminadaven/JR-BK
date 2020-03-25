@@ -12,3 +12,6 @@ ikariam, travian, paradox interactive games etc.
 ## How to run the project:
 Despite it is a Java project, you actually don't need any JVM installed, instead:
 - Click on run.bat to Launch the current version.
+
+## How to use it:
+- To build a building: Click on Holds on the top panel, the select the Hold you want to build the building in, and then click on the building image that you want to build or upgrade. if the building isn't built yet, it will be grayed out.
