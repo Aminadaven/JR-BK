@@ -1,2 +1,2 @@
 @cd JR-BK\bin
-@bin\java Main
+@bin\JR-BK Main
